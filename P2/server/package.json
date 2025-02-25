@@ -4,8 +4,7 @@
   "main": "src/index.ts",
   "scripts": {
     "build": "tsc",
-    "winDev": "tsc && node ./build/index.js",
-    "dev": "node --no-warnings=ExperimentalWarning --loader ts-node/esm src/index.ts",
+    "dev": "tsc && node ./build/index.js",
     "test": "jest"
   },
   "keywords": [],

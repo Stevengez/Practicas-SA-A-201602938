@@ -4,7 +4,7 @@ import { useAuth } from '../../context/auth';
 import { useEffect, useState } from 'react';
 import { jwtDecode } from 'jwt-decode'
 import { differenceInSeconds } from 'date-fns';
-import { IconCheck } from '@tabler/icons-react';
+import { IconCheck, IconCross, IconRefresh } from '@tabler/icons-react';
 
 const HomePage = () => {
 
@@ -52,13 +52,20 @@ const HomePage = () => {
             size="sm"
             icon={
               <ThemeIcon size={20} radius="xl">
-                <IconCheck size={12} stroke={1.5} />
+                {secondsLeft > 0 ? <IconCheck size={12} stroke={1.5} />
+                : <IconRefresh size={12} stroke={1.5} />}
               </ThemeIcon>
             }
           >
+            {secondsLeft > 0 ?
             <List.Item>
               Tu token expirara en: {horas}:{minutos}:{segundos}
+            </List.Item>:
+            <List.Item>
+              Tu token ha expirado.
             </List.Item>
+            }
+            
           </List>
 
           <Space h="lg" />

@@ -19,6 +19,26 @@ const envSchema = {
         REFRESH_WINDOW: {
             type: 'number',
             default: 1000*60*1
+        },
+        SECRET_KEY: {
+            type: 'string',
+            default: "UNSECURE_KEY"
+        },
+        DB_HOST: {
+            type: 'string',
+            default: 'localhost'
+        },
+        DB_USER: {
+            type: 'string',
+            default: 'postgres'
+        },
+        DB_PASS: {
+            type: 'string',
+            default: 'postgres'
+        },
+        DB_NAME: {
+            type: 'string',
+            default: 'p2'
         }
     }
 }
@@ -31,11 +51,19 @@ const envOptions = {
 
 export async function startApp(port: number){
 
-    const db = await initORM(config)
     const app = fastify()
-
     await app.register(env, envOptions)
+
     
+
+    const db = await initORM({
+        ...config,
+        dbName: app.config.DB_NAME,
+        user: app.config.DB_USER,
+        password: app.config.DB_PASS,
+        host: app.config.DB_HOST
+    })
+
     await app.register(cors, {
         origin: 'http://localhost:5173',
         credentials: true
@@ -71,7 +99,7 @@ export async function startApp(port: number){
                 await db.em.flush()
     
                 reply.setCookie('token', app.jwt.sign(user), {
-                    maxAge: app.config.REFRESH_WINDOW,
+                    maxAge: app.config.EXP_TIME+app.config.REFRESH_WINDOW,
                     path: '/'
                 })
         
@@ -111,10 +139,15 @@ export async function startApp(port: number){
                         data: user,
                         message: 'Token is still valid'
                     })
-                }else if(secondsSinceExpire < 60*60*2){
-    
-                    
-                    reply.setCookie('token', app.jwt.sign(user))
+                }else if(secondsSinceExpire < app.config.REFRESH_WINDOW){
+                    reply.setCookie('token', app.jwt.sign(user), {
+                        maxAge: app.config.EXP_TIME+app.config.REFRESH_WINDOW
+                    })
+                }else{
+                    return reply.send({
+                        success: false,
+                        message: 'Token expired'
+                    })
                 }
     
                 return reply.send({
@@ -135,21 +168,20 @@ export async function startApp(port: number){
         fastify.post('/login', async (_req, reply) => {
     
             const { email, password } = _req.body as any
-            const user = await db.user.findOne({ email }, { populate: ['password'] })
+            const encUser = await db.user.findOne({ email }, { populate: ['password'] })
     
-            if(!user){
+            if(!encUser){
                 return { success: false, error: 'User not found' }
             }
     
-            if(!User.verifyPassword(user.password, password))
+            if(!User.verifyPassword(encUser.password, password))
                 return { success: false, error: 'Invalid password' }
     
+            const user = encUser.decryptData()
             reply.setCookie('token', app.jwt.sign(user), {
                 maxAge: 60*60*24*7,
                 path: '/'
             })
-    
-            console.log("User", user)
             
             return reply.send({ success: true, data: user })
         })

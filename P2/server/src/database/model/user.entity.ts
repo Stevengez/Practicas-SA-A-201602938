@@ -1,6 +1,7 @@
 import { BeforeCreate, BeforeUpdate, Entity, EventArgs, Property, Unique } from '@mikro-orm/core'
 import { BaseEntity } from './base.entity.js'
 import { randomBytes, scryptSync } from 'crypto'
+import { decryptString, encryptString } from '../../util/crypto.js'
 
 @Entity()
 export class User extends BaseEntity {
@@ -15,12 +16,12 @@ export class User extends BaseEntity {
     @Property({ hidden: true, lazy: true })
     password!: string
 
-    static async hashPassword(password:string){
-        const salt = randomBytes(16)
-        const passBfr = Buffer.from(password);
-        const derivedKey = scryptSync(passBfr, salt, 64);
+    static async hashValue(value:string, preSalt?:Buffer){
+        const salt = preSalt ?? randomBytes(16)
+        const passBfr = Buffer.from(value)
+        const derivedKey = scryptSync(passBfr, salt, 64)
 
-        return `${salt.toString('hex')}:${derivedKey.toString('hex')}`;
+        return `${salt.toString('hex')}:${derivedKey.toString('hex')}`
     }
 
     static verifyPassword(hashedPassword:string, password:string){
@@ -34,12 +35,31 @@ export class User extends BaseEntity {
 
     @BeforeCreate()
     @BeforeUpdate()
-    async hashPassword(args: EventArgs<User>) {
+    async hashData(args: EventArgs<User>) {
         // hash only if the password was changed
-        const password = args.changeSet?.payload.password;
+        const { name, email, password} = args.changeSet?.payload ?? {};
+
+        if(name){
+            this.name = encryptString(name, process.env.SECRET_KEY!);
+        }
+
+        // if(email){
+        //     this.email = encryptString(email, process.env.SECRET_KEY!);
+        // }
 
         if (password) {
-            this.password = await User.hashPassword(password);
+            this.password = await User.hashValue(password);
         }
-    }    
+    }
+
+    decryptData(){
+
+        const { password, ...user} = this
+
+        return {
+            ...user,
+            name: decryptString(user.name, process.env.SECRET_KEY!),
+            // email: this.email = encryptString(this.email, process.env.SECRET_KEY!),
+        }        
+    }
 }
