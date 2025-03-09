@@ -44,6 +44,13 @@ const AuthProvider = ({ children }:Props) => {
             .catch(errCB)
     };
 
+    const register = async (name: string, email:string, password: string, errCB: (err:any)=> void) => {
+        auth
+            .register(name, email, password)
+            .then((res) => setUser(res.data.data))
+            .catch(errCB)
+    };
+
     const logout = () => {
         document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
         setUser(null);        
@@ -53,7 +60,7 @@ const AuthProvider = ({ children }:Props) => {
     return <div>Validating...</div>
 
     if(!user)
-    return <LoginPage login={login} />
+    return <LoginPage login={login} register={register} />
 
     return <AuthContext.Provider value={{ user, login, logout }}>
         {children}

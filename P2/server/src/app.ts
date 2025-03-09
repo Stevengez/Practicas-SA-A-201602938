@@ -63,9 +63,17 @@ export async function startApp(port: number){
         password: app.config.DB_PASS,
         host: app.config.DB_HOST
     })
+    
+    db.orm.schema.createSchema()
+        .catch((Err) => {
+            console.log("Failed to create schema")
+        })
 
     await app.register(cors, {
-        origin: 'http://localhost:5173',
+        origin: [
+            'http://localhost:5173',
+            'http://localhost:5174'
+        ],
         credentials: true
     })
     await app.register(fastifyCookie)
@@ -103,6 +111,7 @@ export async function startApp(port: number){
                     path: '/'
                 })
         
+                console.log("SEindg,m", user)
                 return reply.send({
                     user: {
                         name, email, id: user.id 
