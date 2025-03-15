@@ -1,0 +1,100 @@
+services:
+  # db_auth:
+  #   container_name: database_auth
+  #   image: postgres:latest
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - ./db_data_auth:/var/lib/postgresql
+  #   environment:
+  #     - POSTGRES_USER=postgres
+  #     - POSTGRES_PASSWORD=postgres123
+  #     - POSTGRES_DB=p4
+  # db_posts:
+  #   container_name: database_posts
+  #   image: postgres:latest
+  #   ports:
+  #     - "5433:5432"
+  #   volumes:
+  #     - ./db_data_posts:/var/lib/postgresql
+  #   environment:
+  #     - POSTGRES_USER=postgres
+  #     - POSTGRES_PASSWORD=postgres123
+  #     - POSTGRES_DB=p4
+  # db_comms:
+  #   container_name: db_comments
+  #   image: postgres:latest
+  #   restart: always
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready", "-d", "p4"]
+  #     interval: 3s
+  #     timeout: 10s
+  #     retries: 15
+  #     start_period: 120s
+  #   volumes:
+  #     - ./db_data_comms:/var/lib/postgresql
+  #   networks:
+  #     - p4_network
+  #   ports:
+  #     - "5434:5432"
+  #   environment:
+  #     - POSTGRES_USER=postgres
+  #     - POSTGRES_PASSWORD=postgres123
+  #     - POSTGRES_DB=p4
+  #     - PGUSER=postgres
+  # api_comments:
+  #   container_name: api_comms
+  #   build: ./MSComentarios
+  #   depends_on:
+  #     db_comms:
+  #       condition: service_healthy
+  #   ports: 
+  #     - "3000:3000"
+  #   environment:
+  #     - DB_HOST=db_comments
+  #     - DB_USER=postgres
+  #     - DB_PASS=postgres123
+  #     - DB_PORT=5432
+  #     - DB_NAME=p4
+  #   networks:
+  #     - p4_network
+  db_reacts:
+    container_name: db_reactions
+    image: postgres:latest
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-d", "p4"]
+      interval: 3s
+      timeout: 10s
+      retries: 15
+      start_period: 120s
+    volumes:
+      - ./db_data_reacts:/var/lib/postgresql
+    networks:
+      - p4_network
+    ports:
+      - "5435:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres123
+      - POSTGRES_DB=p4
+      - PGUSER=postgres
+  api_reacts:
+    container_name: api_reacts
+    build: ./MSReacciones
+    depends_on:
+      db_reacts:
+        condition: service_healthy
+    ports: 
+      - "3000:3000"
+    environment:
+      - DB_HOST=db_reacts
+      - DB_USER=postgres
+      - DB_PASS=postgres123
+      - DB_PORT=5432
+      - DB_NAME=p4
+    networks:
+      - p4_network
+networks:
+  p4_network:
+    driver: bridge

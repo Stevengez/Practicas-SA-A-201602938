@@ -1,0 +1,41 @@
+# syntax=docker/dockerfile:1
+# Etapa 1: Construcción del binario
+FROM golang:1.24.1-alpine
+
+# Establecer el directorio de trabajo dentro del contenedor
+WORKDIR /app
+
+# Copiar los archivos go.mod y go.sum
+COPY go.mod go.sum ./
+
+# Descargar las dependencias del proyecto
+RUN go mod tidy
+
+# Copiar el código fuente al contenedor
+COPY . .
+
+# Construir el binario
+RUN go build -o main .
+
+# Etapa 2: Crear la imagen final
+FROM alpine:latest
+
+# Instalar dependencias necesarias para ejecutar el binario
+RUN apk --no-cache add ca-certificates
+
+# Establecer el directorio de trabajo
+WORKDIR /root/
+
+# Copiar el binario desde la etapa de construcción
+COPY --from=0 /app/main .
+
+# Exponer el puerto que usará la API
+EXPOSE 3000
+ENV DB_HOST=localhost
+ENV DB_USER=postgres
+ENV DB_PASS=postgres123
+ENV DB_DBNAME=p4
+ENV DB_PORT=5434
+
+# Comando para ejecutar el binario cuando se inicie el contenedor
+CMD ["./main"]
