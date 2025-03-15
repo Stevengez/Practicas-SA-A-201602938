@@ -35,7 +35,7 @@ ENV DB_HOST=localhost
 ENV DB_USER=postgres
 ENV DB_PASS=postgres123
 ENV DB_DBNAME=p4
-ENV DB_PORT=5434
+ENV DB_PORT=5432
 
 # Comando para ejecutar el binario cuando se inicie el contenedor
 CMD ["./main"]

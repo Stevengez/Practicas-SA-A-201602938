@@ -2,7 +2,7 @@ import { initORM } from "./db/index.js";
 import { ApolloServer } from "@apollo/server";
 import { startStandaloneServer } from "@apollo/server/standalone";
 import { Usuario } from "./entities/usuario.entity.js";
-export async function bootstrap(port = 3001, migrate = true) {
+export async function bootstrap(port = 3000, migrate = true) {
     const db = await initORM();
     if (migrate) {
         // sync the schema
@@ -60,7 +60,8 @@ export async function bootstrap(port = 3001, migrate = true) {
         context: async ({ req }) => ({
             token: req.headers.authorization,
             em: db.em.fork()
-        })
+        }),
+        listen: { port }
     });
     return {
         url,

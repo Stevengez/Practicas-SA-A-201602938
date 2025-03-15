@@ -5,11 +5,10 @@ import { Migrator } from '@mikro-orm/migrations'
 const config: Options = {
   // for simplicity, we use the SQLite database, as it's available pretty much everywhere
   driver: PostgreSqlDriver,
-  dbName: 'p4',
-  host: '192.168.1.43',
-  port: 5433,
-  user: 'postgres',
-  password: 'postgres123',
+  dbName: process.env.DB_NAME,
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
   // folder-based discovery setup, using common filename suffix
   entities: ['dist/**/*.entity.js'],
   entitiesTs: ['src/**/*.entity.ts'],

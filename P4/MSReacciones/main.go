@@ -37,10 +37,11 @@ func main(){
 	// Filtrado con query params, publicacion_id, usuario_id
 	app.Get("/", func(c* fiber.Ctx) error {
 
-		var publicacion_id = c.Query("comentario_id")
+		var publicacion_id = c.Query("publicacion_id")
+		var comentario_id = c.Query("comentario_id")
 		var usuario_id = c.Query("usuario_id")
 
-		var reacciones []model.Megusta
+		var comentarios []model.Megusta
 		
 		query := db.Model(&model.Megusta{})
 
@@ -48,17 +49,21 @@ func main(){
 			query = query.Where("publicacion_id = ?", publicacion_id)
 		}
 
+		if comentario_id != "" {
+			query = query.Where("comentario_id = ?", comentario_id)
+		}
+
 		if usuario_id != "" {
 			query = query.Where("usuario_id = ?", usuario_id)
 		}
 
-		if err := query.Find(&reacciones).Error; err != nil {
+		if err := query.Find(&comentarios).Error; err != nil {
 			return c.JSON(map[string]interface{}{
 				"Error": "Failed to get reactions",
 			})
 		}
 		
-		return c.JSON(reacciones)
+		return c.JSON(comentarios)
 	})
 
 	log.Fatal(app.Listen("0.0.0.0:3000"))

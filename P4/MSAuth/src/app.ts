@@ -1,4 +1,3 @@
-import { NotFoundError, RequestContext } from "@mikro-orm/core";
 import { initORM } from "./db/index.js";
 import { ApolloServer } from "@apollo/server";
 import { startStandaloneServer } from "@apollo/server/standalone";
@@ -11,11 +10,12 @@ type ServerContext = {
     em: EntityManager
 }
 
-export async function bootstrap(port = 3001, migrate = true) {
+export async function bootstrap(port = 3000, migrate = true) {
     const db = await initORM();
 
     if (migrate) {
         // sync the schema
+        try { db.orm.schema.createSchema() }catch(e){}
         await db.orm.migrator.up();
     }
 
@@ -44,7 +44,6 @@ export async function bootstrap(port = 3001, migrate = true) {
             unfollowUser(id: Int!): ActionResult,
         }
     `
-
 
     const resolvers = {
         Query: {
@@ -75,7 +74,8 @@ export async function bootstrap(port = 3001, migrate = true) {
         context: async ({ req }) => ({
             token: req.headers.authorization,
             em: db.em.fork()
-        })
+        }),
+        listen: { port }
     })
 
     return {

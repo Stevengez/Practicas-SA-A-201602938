@@ -11,11 +11,12 @@ type ServerContext = {
     em: EntityManager
 }
 
-export async function bootstrap(port = 3001, migrate = true) {
+export async function bootstrap(port = 3000, migrate = true) {
     const db = await initORM();
 
     if (migrate) {
         // sync the schema
+        try { db.orm.schema.createSchema() }catch(e){}
         await db.orm.migrator.up();
     }
 
@@ -41,8 +42,7 @@ export async function bootstrap(port = 3001, migrate = true) {
             updatePost(id: Int!, contenido: String!): Publicacion
         }
     `
-
-
+    
     const resolvers = {
         Query: {
             publicaciones: async (parent:any, args: any, { token, em }: ServerContext, info:GraphQLResolveInfo) => {
@@ -72,7 +72,8 @@ export async function bootstrap(port = 3001, migrate = true) {
         context: async ({ req }) => ({
             token: req.headers.authorization,
             em: db.em.fork()
-        })
+        }),
+        listen: { port }
     })
 
     return {

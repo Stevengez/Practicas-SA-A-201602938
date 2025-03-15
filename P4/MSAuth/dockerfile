@@ -1,0 +1,23 @@
+# Stage 1:Build
+FROM node:22.14.0-alpine
+WORKDIR /app
+COPY . .
+RUN npm i
+RUN npm run compile
+
+# Stage 2:Container
+FROM node:22.14.0-alpine
+
+WORKDIR /app
+COPY --from=0 /app/dist ./dist
+COPY ./package.json /app/package.json
+RUN npm i
+
+EXPOSE 3000
+ENV DB_HOST=localhost
+ENV DB_USER=postgres
+ENV DB_PASS=postgres123
+ENV DB_NAME=p4
+ENV DB_PORT=5432
+
+CMD ["node", "dist/index.js"]
