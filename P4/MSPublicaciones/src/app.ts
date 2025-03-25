@@ -16,7 +16,16 @@ export async function bootstrap(port = 3000, migrate = true) {
 
     if (migrate) {
         // sync the schema
-        try { db.orm.schema.createSchema() }catch(e){}
+        const schemaGenerator = db.orm.getSchemaGenerator();
+        const knex = db.orm.em.getConnection().getKnex();
+
+        // Verificar si ya existen tablas en la base de datos
+        const tables = await knex.raw(`SELECT tablename FROM pg_tables WHERE schemaname='public'`);
+
+        if (tables.rows.length === 0) {
+            await schemaGenerator.createSchema();
+        }
+
         await db.orm.migrator.up();
     }
 
