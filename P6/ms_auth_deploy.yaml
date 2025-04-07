@@ -26,11 +26,11 @@ spec:
         - name: PGUSER
           value: "postgres"
         volumeMounts:
-        - name: postgres-data-auth
+        - name: postgres-data-authv2
           mountPath: /var/lib/postgresql/data  # Ruta donde PostgreSQL almacenará los datos
   volumeClaimTemplates:
   - metadata:
-      name: postgres-data-auth
+      name: postgres-data-authv2
     spec:
       accessModes: ["ReadWriteOnce"]
       resources:
