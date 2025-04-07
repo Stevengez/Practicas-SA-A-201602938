@@ -66,8 +66,8 @@ spec:
     spec:
       containers:
       - name: api-reacts
-        image: p4-api_reacts:latest
-        imagePullPolicy: Never
+        image: stevengez/sap5-reacts:latest
+        imagePullPolicy: Always
         resources:
           requests:
             memory: "128Mi"
