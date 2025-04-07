@@ -25,6 +25,8 @@ spec:
           value: "p5"
         - name: PGUSER
           value: "postgres"
+        - name: PGDATA
+          value: "/var/lib/postgresql/data/pgdata"
         volumeMounts:
         - name: postgres-data-posts
           mountPath: /var/lib/postgresql/data  # Ruta donde PostgreSQL almacenará los datos
