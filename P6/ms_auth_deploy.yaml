@@ -1,0 +1,121 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: db-auth-stateful
+spec:
+  serviceName: "postgres"  # Nombre del servicio que maneja los pods de PostgreSQL
+  replicas: 1  # Número de réplicas
+  selector:
+    matchLabels:
+      app: db_auth
+  template:
+    metadata:
+      labels:
+        app: db_auth
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:latest  # Imagen de PostgreSQL
+        env:
+        - name: POSTGRES_USER
+          value: "postgres"
+        - name: POSTGRES_PASSWORD
+          value: "postgres123"
+        - name: POSTGRES_DB
+          value: "p5"
+        - name: PGUSER
+          value: "postgres"
+        volumeMounts:
+        - name: postgres-data-auth
+          mountPath: /var/lib/postgresql/data  # Ruta donde PostgreSQL almacenará los datos
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-data-auth
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 1Gi # Tamaño del volumen persistente
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-auth-svc
+spec:
+  ports:
+    - port: 5432
+  clusterIP: None  # Esto es clave para los StatefulSets
+  selector:
+    app: db_auth
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-api-deployment
+  labels:
+    app: api-auth
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-auth
+  template:
+    metadata:
+      labels:
+        app: api-auth
+    spec:
+      containers:
+      - name: api-auth
+        image: p4-api_auth:latest
+        imagePullPolicy: Never
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "250m"
+          limits:
+            memory: "180Mi"
+            cpu: "350m"
+        ports:
+        - containerPort: 3000
+        env:
+        - name: DB_HOST
+          value: "db-auth-svc"
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_USER
+          value: "postgres"
+        - name: DB_PASSWORD
+          value: "postgres123"
+        - name: DB_NAME
+          value: "p5"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-auth-svc
+spec:
+  selector:
+    app: api-auth
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 3000
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: auth-api-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: auth-api-deployment
+  minReplicas: 1
+  maxReplicas: 2
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 80
