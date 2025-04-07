@@ -25,12 +25,14 @@ spec:
           value: "p5"
         - name: PGUSER
           value: "postgres"
+        - name: PGDATA
+          value: "/var/lib/postgresql/data/pgdata"  # Ruta donde PostgreSQL almacenará los datos
         volumeMounts:
-        - name: postgres-data-authv2
+        - name: postgres-data-auth
           mountPath: /var/lib/postgresql/data  # Ruta donde PostgreSQL almacenará los datos
   volumeClaimTemplates:
   - metadata:
-      name: postgres-data-authv2
+      name: postgres-data-auth
     spec:
       accessModes: ["ReadWriteOnce"]
       resources:
