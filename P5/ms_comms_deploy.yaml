@@ -66,8 +66,8 @@ spec:
     spec:
       containers:
       - name: api-comms
-        image: p4-api_comments:latest
-        imagePullPolicy: Never
+        image: stevengez/sap5-comms:latest
+        imagePullPolicy: Always
         resources:
           requests:
             memory: "128Mi"

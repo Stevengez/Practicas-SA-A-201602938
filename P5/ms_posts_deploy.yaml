@@ -66,8 +66,8 @@ spec:
     spec:
       containers:
       - name: api-posts
-        image: p4-api_posts:latest
-        imagePullPolicy: Never
+        image: stevengez/sap5-posts:latest
+        imagePullPolicy: Always
         resources:
           requests:
             memory: "128Mi"
