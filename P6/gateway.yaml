@@ -1,41 +1,30 @@
-apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
+apiVersion: gateway.networking.k8s.io/v1beta1
 metadata:
   name: proyect-gateway
+  annotations:
+    #networking.gke.io/certmap: store-example-com-map
 spec:
-  gatewayClassName: gce
+  gatewayClassName: gke-l7-global-external-managed
   listeners:
-    - name: http
-      protocol: HTTP
-      port: 80
+  - name: http
+    protocol: HTTP
+    port: 80
 ---
-apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1beta1
 metadata:
   name: proyect-route
 spec:
   parentRefs:
-    - name: proyect-gateway
+    - kind: Gateway
+      name: proyect-gateway
   hostnames:
     - "*"  # Reemplaza con tu dominio si es necesario, o quítalo si no es necesario
   rules:
     - backendRefs:
         - name: api-auth-svc
           port: 80
-      path: /api/v1/usuarios
-      pathType: Prefix
-    - backendRefs:
-        - name: api-posts-svc
-          port: 80
-      path: /api/v1/publicaciones
-      pathType: Prefix
-    - backendRefs:
-        - name: api-comms-svc
-          port: 80
-      path: /api/v1/comentarios
-      pathType: Prefix
-    - backendRefs:
-        - name: api-reacts-svc
-          port: 80
-      path: /api/v1/reacciones
-      pathType: Prefix
+    - matches:
+      - path:
+          value: /api/v1/usuarios
