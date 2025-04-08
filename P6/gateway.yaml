@@ -1,0 +1,42 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: proyect-gateway
+spec:
+  gatewayClassName: gce
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: proyect-route
+  namespace: p5
+spec:
+  parentRefs:
+    - name: proyect-gateway
+  hostnames:
+    - "*"  # Reemplaza con tu dominio si es necesario, o quítalo si no es necesario
+  rules:
+    - backendRefs:
+        - name: api-auth-svc
+          port: 80
+      path: /api/v1/usuarios
+      pathType: Prefix
+    - backendRefs:
+        - name: api-posts-svc
+          port: 80
+      path: /api/v1/publicaciones
+      pathType: Prefix
+    - backendRefs:
+        - name: api-comms-svc
+          port: 80
+      path: /api/v1/comentarios
+      pathType: Prefix
+    - backendRefs:
+        - name: api-reacts-svc
+          port: 80
+      path: /api/v1/reacciones
+      pathType: Prefix
