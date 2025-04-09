@@ -32,6 +32,12 @@ func main(){
 	db.AutoMigrate(&model.Megusta{})
 
 	app := fiber.New()
+
+	app.Get("/status", func(c* fiber.Ctx) error {
+
+		// return status ok
+		return c.SendStatus(200)
+	})
 	
 	// Primer endpoint para obtener todos los comentarios
 	// Filtrado con query params, publicacion_id, usuario_id

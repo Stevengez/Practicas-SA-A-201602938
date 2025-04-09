@@ -27,4 +27,21 @@ spec:
         - name: api-auth-svc
           port: 80
           namespace: p5
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: proyect-route-reacts
+spec:
+  parentRefs:
+    - kind: Gateway
+      name: proyect-gateway
+  rules:
+    - matches:
+      - path:
+          value: /api/v1/reacciones
+      backendRefs:
+        - name: api-reacts-svc
+          port: 80
+          namespace: p5
     

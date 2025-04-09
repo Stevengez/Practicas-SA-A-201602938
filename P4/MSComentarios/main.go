@@ -35,6 +35,13 @@ func main(){
 	
 	// Primer endpoint para obtener todos los comentarios
 	// Filtrado con query params, publicacion_id, usuario_id
+
+	app.Get("/status", func(c* fiber.Ctx) error {
+
+		// return status ok
+		return c.SendStatus(200)
+	})
+
 	app.Get("/", func(c* fiber.Ctx) error {
 
 		var publicacion_id = c.Query("publicacion_id")
