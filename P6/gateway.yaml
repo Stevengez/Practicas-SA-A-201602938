@@ -23,6 +23,4 @@ spec:
     - backendRefs:
         - name: api-auth-svc
           port: 80
-    - matches:
-      - path:
-          value: /api/v1/usuarios
+    
