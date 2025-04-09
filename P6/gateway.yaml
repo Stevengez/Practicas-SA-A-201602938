@@ -40,6 +40,12 @@ spec:
     - matches:
       - path:
           value: /api/v1/reacciones
+      filters:
+      - type: URLRewrite
+        urlRewrite:
+          path:
+            type: ReplacePrefixMatch
+            replacePrefixMatch: /
       backendRefs:
         - name: api-reacts-svc
           port: 80
