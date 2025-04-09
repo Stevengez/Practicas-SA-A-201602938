@@ -20,7 +20,7 @@ spec:
     - kind: Gateway
       name: proyect-gateway
   hostnames:
-    - "*"  # Reemplaza con tu dominio si es necesario, o quítalo si no es necesario
+    - []  # Reemplaza con tu dominio si es necesario, o quítalo si no es necesario
   rules:
     - backendRefs:
         - name: api-auth-svc
