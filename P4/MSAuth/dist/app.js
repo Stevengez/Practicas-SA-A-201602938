@@ -1,11 +1,22 @@
 import { initORM } from "./db/index.js";
 import { ApolloServer } from "@apollo/server";
-import { startStandaloneServer } from "@apollo/server/standalone";
 import { Usuario } from "./entities/usuario.entity.js";
+import { expressMiddleware } from "@apollo/server/express4";
+import express from 'express';
+import cors from 'cors';
 export async function bootstrap(port = 3000, migrate = true) {
     const db = await initORM();
+    const app = express();
     if (migrate) {
         // sync the schema
+        // sync the schema
+        const schemaGenerator = db.orm.getSchemaGenerator();
+        const knex = db.orm.em.getConnection().getKnex();
+        // Verificar si ya existen tablas en la base de datos
+        const tables = await knex.raw(`SELECT tablename FROM pg_tables WHERE schemaname='public'`);
+        if (tables.rows.length === 0) {
+            await schemaGenerator.createSchema();
+        }
         await db.orm.migrator.up();
     }
     const typeDefs = `#graphql
@@ -56,15 +67,21 @@ export async function bootstrap(port = 3000, migrate = true) {
         resolvers,
         introspection: true
     });
-    const { url } = await startStandaloneServer(server, {
-        context: async ({ req }) => ({
-            token: req.headers.authorization,
-            em: db.em.fork()
-        }),
-        listen: { port }
+    await server.start();
+    app.use('/graphql', cors(), express.json(), expressMiddleware(server));
+    await new Promise(resolve => app.listen({ port }, resolve));
+    app.get('/', (req, res) => {
+        res.status(200).send('OK');
     });
+    // const { url } = await startStandaloneServer(server, {
+    //     context: async ({ req }) => ({
+    //         token: req.headers.authorization,
+    //         em: db.em.fork()
+    //     }),
+    //     listen: { port }
+    // })
     return {
-        url,
+        url: `http://localhost:${port}/graphql`,
         server
     };
 }

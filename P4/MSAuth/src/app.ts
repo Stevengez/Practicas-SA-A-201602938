@@ -4,6 +4,10 @@ import { startStandaloneServer } from "@apollo/server/standalone";
 import { Usuario } from "./entities/usuario.entity.js";
 import { EntityManager } from "@mikro-orm/postgresql";
 import { GraphQLResolveInfo } from "graphql";
+import { expressMiddleware } from "@apollo/server/express4";
+import express from 'express'
+import cors from 'cors'
+import { resolve } from "path";
 
 type ServerContext = {
     token: string|undefined,
@@ -12,6 +16,7 @@ type ServerContext = {
 
 export async function bootstrap(port = 3000, migrate = true) {
     const db = await initORM();
+    const app = express()
 
     if (migrate) {
         // sync the schema
@@ -79,16 +84,34 @@ export async function bootstrap(port = 3000, migrate = true) {
         introspection: true
     })
 
-    const { url } = await startStandaloneServer(server, {
-        context: async ({ req }) => ({
-            token: req.headers.authorization,
-            em: db.em.fork()
-        }),
-        listen: { port }
+    await server.start()
+
+    app.use('/graphql', 
+        cors<cors.CorsRequest>(),
+        express.json(),
+        expressMiddleware(server as any)
+    )
+
+
+    await new Promise<void>(
+        resolve => app.listen({ port },resolve)
+    )
+
+    app.get('/', (req, res) => {
+        
+        res.status(200).send('OK')
     })
 
+    // const { url } = await startStandaloneServer(server, {
+    //     context: async ({ req }) => ({
+    //         token: req.headers.authorization,
+    //         em: db.em.fork()
+    //     }),
+    //     listen: { port }
+    // })
+
     return {
-        url,
+        url: `http://localhost:${port}/graphql`,
         server
     }
 }
