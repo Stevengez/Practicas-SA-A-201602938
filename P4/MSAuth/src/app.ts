@@ -1,13 +1,13 @@
 import { initORM } from "./db/index.js";
 import { ApolloServer } from "@apollo/server";
-import { startStandaloneServer } from "@apollo/server/standalone";
 import { Usuario } from "./entities/usuario.entity.js";
 import { EntityManager } from "@mikro-orm/postgresql";
 import { GraphQLResolveInfo } from "graphql";
 import { expressMiddleware } from "@apollo/server/express4";
+import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
 import express from 'express'
 import cors from 'cors'
-import { resolve } from "path";
+import http from 'http'
 
 type ServerContext = {
     token: string|undefined,
@@ -78,9 +78,12 @@ export async function bootstrap(port = 3000, migrate = true) {
         }
     }
 
+    const httpServer = http.createServer(app);
+
     const server = new ApolloServer<ServerContext>({
         typeDefs,
         resolvers,
+        plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
         introspection: true
     })
 
@@ -89,12 +92,17 @@ export async function bootstrap(port = 3000, migrate = true) {
     app.use('/graphql', 
         cors<cors.CorsRequest>(),
         express.json(),
-        expressMiddleware(server as any)
+        expressMiddleware(server, {
+            context: async ({ req }) => ({
+                token: req.headers.authorization,
+                em: db.em.fork()
+            }),
+        })
     )
 
 
     await new Promise<void>(
-        resolve => app.listen({ port },resolve)
+        resolve => httpServer.listen({ port }, resolve)
     )
 
     app.get('/', (req, res) => {

@@ -5,6 +5,11 @@ import { startStandaloneServer } from "@apollo/server/standalone";
 import { Publicacion } from "./entities/publicacion.entity.js";
 import { EntityManager } from "@mikro-orm/postgresql";
 import { GraphQLResolveInfo } from "graphql";
+import express from 'express'
+import cors from 'cors'
+import http from 'http'
+import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
+import { expressMiddleware } from "@apollo/server/express4";
 
 type ServerContext = {
     token: string|undefined,
@@ -12,7 +17,8 @@ type ServerContext = {
 }
 
 export async function bootstrap(port = 3000, migrate = true) {
-    const db = await initORM();
+    const db = await initORM()
+    const app = express()
 
     if (migrate) {
         // sync the schema
@@ -71,22 +77,47 @@ export async function bootstrap(port = 3000, migrate = true) {
         }
     }
 
+    const httpServer = http.createServer(app);
+
     const server = new ApolloServer<ServerContext>({
         typeDefs,
         resolvers,
+        plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
         introspection: true
     })
 
-    const { url } = await startStandaloneServer(server, {
-        context: async ({ req }) => ({
-            token: req.headers.authorization,
-            em: db.em.fork()
-        }),
-        listen: { port }
+    // const { url } = await startStandaloneServer(server, {
+    //     context: async ({ req }) => ({
+    //         token: req.headers.authorization,
+    //         em: db.em.fork()
+    //     }),
+    //     listen: { port }
+    // })
+
+    await server.start()
+
+    app.use('/graphql', 
+        cors<cors.CorsRequest>(),
+        express.json(),
+        expressMiddleware(server, {
+            context: async ({ req }) => ({
+                token: req.headers.authorization,
+                em: db.em.fork()
+            }),
+        })
+    )
+
+    await new Promise<void>(
+        resolve => httpServer.listen({ port }, resolve)
+    )
+
+    app.get('/', (req, res) => {
+        
+        res.status(200).send('OK')
     })
 
     return {
-        url,
+        url: `http://localhost:${port}/graphql`,
         server
     }
 }
