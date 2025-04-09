@@ -23,6 +23,12 @@ spec:
     - matches:
       - path:
           value: /api/v1/usuarios
+      filters:
+      - type: URLRewrite
+        urlRewrite:
+          path:
+            type: ReplacePrefixMatch
+            replacePrefixMatch: /
       backendRefs:
         - name: api-auth-svc
           port: 80
@@ -50,4 +56,3 @@ spec:
         - name: api-reacts-svc
           port: 80
           namespace: p5
-    
