@@ -28,7 +28,7 @@ spec:
         urlRewrite:
           path:
             type: ReplacePrefixMatch
-            replacePrefixMatch: /
+            replacePrefixMatch: /graphql
       backendRefs:
         - name: api-auth-svc
           port: 80
