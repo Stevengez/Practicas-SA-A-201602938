@@ -25,11 +25,11 @@ Un Service en Kubernetes es un recurso que define una política de acceso a un c
 Para aplicar la configuración de Kubernetes, se utiliza el comando `kubectl apply -f <archivo.yaml>`. Este comando aplica la configuración especificada en el archivo YAML al clúster de Kubernetes.
 
 ```sh
-kubectl apply -f ms_auth_deploy.yaml -n sa-p5
-kubectl apply -f ms_reacts_deploy.yaml -n sa-p5
-kubectl apply -f ms_posts_deploy.yaml -n sa-p5
-kubectl apply -f ms_comms_deploy.yaml -n sa-p5
-kubectl apply -f ingress.yaml -n sa-p5
+kubectl apply -f ms_auth_deploy.yaml -n p5
+kubectl apply -f ms_reacts_deploy.yaml -n p5
+kubectl apply -f ms_posts_deploy.yaml -n p5
+kubectl apply -f ms_comms_deploy.yaml -n p5
+kubectl apply -f gateway.yaml -n p5
 ```
 
 ## Archivos YAML de los despliegues
@@ -63,6 +63,8 @@ spec:
           value: "p4"
         - name: PGUSER
           value: "postgres"
+        - name: PGDATA
+          value: "/var/lib/postgresql/data/pgdata"
         volumeMounts:
         - name: postgres-data-reacts
           mountPath: /var/lib/postgresql/data  # Ruta donde PostgreSQL almacenará los datos
@@ -104,12 +106,12 @@ spec:
     spec:
       containers:
       - name: api-reacts
-        image: p4-api_reacts:latest
-        imagePullPolicy: Never
+        image: stevengez/sap5-reacts:latest
+        imagePullPolicy: Always
         resources:
           requests:
             memory: "128Mi"
-            cpu: "250m"
+            cpu: "80m"
           limits:
             memory: "128Mi"
             cpu: "300m"
@@ -188,6 +190,8 @@ spec:
           value: "p5"
         - name: PGUSER
           value: "postgres"
+        - name: PGDATA
+          value: "/var/lib/postgresql/data/pgdata"
         volumeMounts:
         - name: postgres-data-posts
           mountPath: /var/lib/postgresql/data  # Ruta donde PostgreSQL almacenará los datos
@@ -229,12 +233,12 @@ spec:
     spec:
       containers:
       - name: api-posts
-        image: p4-api_posts:latest
-        imagePullPolicy: Never
+        image: stevengez/sap5-posts:latest
+        imagePullPolicy: Always
         resources:
           requests:
             memory: "128Mi"
-            cpu: "250m"
+            cpu: "80m"
           limits:
             memory: "180Mi"
             cpu: "350m"
@@ -313,6 +317,8 @@ spec:
           value: "p4"
         - name: PGUSER
           value: "postgres"
+        - name: PGDATA
+          value: "/var/lib/postgresql/data/pgdata"
         volumeMounts:
         - name: postgres-data-comms
           mountPath: /var/lib/postgresql/data  # Ruta donde PostgreSQL almacenará los datos
@@ -354,12 +360,12 @@ spec:
     spec:
       containers:
       - name: api-comms
-        image: p4-api_comments:latest
-        imagePullPolicy: Never
+        image: stevengez/sap5-comms:latest
+        imagePullPolicy: Always
         resources:
           requests:
             memory: "128Mi"
-            cpu: "250m"
+            cpu: "80m"
           limits:
             memory: "128Mi"
             cpu: "300m"
@@ -438,6 +444,8 @@ spec:
           value: "p5"
         - name: PGUSER
           value: "postgres"
+        - name: PGDATA
+          value: "/var/lib/postgresql/data/pgdata"  # Ruta donde PostgreSQL almacenará los datos
         volumeMounts:
         - name: postgres-data-auth
           mountPath: /var/lib/postgresql/data  # Ruta donde PostgreSQL almacenará los datos
@@ -479,12 +487,12 @@ spec:
     spec:
       containers:
       - name: api-auth
-        image: p4-api_auth:latest
-        imagePullPolicy: Never
+        image: stevengez/sap5-msauth:p6-v1
+        imagePullPolicy: Always
         resources:
           requests:
             memory: "128Mi"
-            cpu: "250m"
+            cpu: "80m"
           limits:
             memory: "180Mi"
             cpu: "350m"
@@ -534,47 +542,110 @@ spec:
         averageUtilization: 80
 ```
 
-### ingress.yaml
+### gateway.yaml
 ```yaml
-apiVersion: networking.k8s.io/v1
-kind: Ingress
+kind: Gateway
+apiVersion: gateway.networking.k8s.io/v1beta1
 metadata:
-  name: proyect-ingress
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
+  name: proyect-gateway
 spec:
-  ingressClassName: nginx
+  gatewayClassName: gke-l7-global-external-managed
+  listeners:
+  - name: http
+    protocol: HTTP
+    port: 80
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: proyect-route
+spec:
+  parentRefs:
+    - kind: Gateway
+      name: proyect-gateway
   rules:
-  - http:
-      paths:
-      - path: /api/v1/usuarios(/|$)(.*)
-        pathType: Prefix
-        backend:
-          service:
-            name: api-auth-svc
-            port:
-              number: 80
-      - path: /api/v1/publicaciones(/|$)(.*)
-        pathType: Prefix
-        backend:
-          service:
-            name: api-posts-svc
-            port:
-              number: 80
-      - path: /api/v1/comentarios(/|$)(.*)
-        pathType: Prefix
-        backend:
-          service:
-            name: api-comms-svc
-            port:
-              number: 80
-      - path: /api/v1/reacciones(/|$)(.*)
-        pathType: Prefix
-        backend:
-          service:
-            name: api-reacts-svc
-            port:
-              number: 80
+    - matches:
+      - path:
+          value: /api/v1/usuarios
+      filters:
+      - type: URLRewrite
+        urlRewrite:
+          path:
+            type: ReplacePrefixMatch
+            replacePrefixMatch: /graphql
+      backendRefs:
+        - name: api-auth-svc
+          port: 80
+          namespace: p5
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: proyect-route-reacts
+spec:
+  parentRefs:
+    - kind: Gateway
+      name: proyect-gateway
+  rules:
+    - matches:
+      - path:
+          value: /api/v1/reacciones
+      filters:
+      - type: URLRewrite
+        urlRewrite:
+          path:
+            type: ReplacePrefixMatch
+            replacePrefixMatch: /
+      backendRefs:
+        - name: api-reacts-svc
+          port: 80
+          namespace: p5
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: proyect-route-posts
+spec:
+  parentRefs:
+    - kind: Gateway
+      name: proyect-gateway
+  rules:
+    - matches:
+      - path:
+          value: /api/v1/publicaciones
+      filters:
+      - type: URLRewrite
+        urlRewrite:
+          path:
+            type: ReplacePrefixMatch
+            replacePrefixMatch: /graphql
+      backendRefs:
+        - name: api-posts-svc
+          port: 80
+          namespace: p5
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: proyect-route-comms
+spec:
+  parentRefs:
+    - kind: Gateway
+      name: proyect-gateway
+  rules:
+    - matches:
+      - path:
+          value: /api/v1/comentarios
+      filters:
+      - type: URLRewrite
+        urlRewrite:
+          path:
+            type: ReplacePrefixMatch
+            replacePrefixMatch: /
+      backendRefs:
+        - name: api-comms-svc
+          port: 80
+          namespace: p5
   
 ```
 
@@ -609,6 +680,29 @@ kubectl get hpa -n sa-p5
 ## Diagrama de Arquitectura
 ![alt text](<P5 - Diagrama de Arquitectura.jpg>)
 
-## ¿Qué es un CronJob?
+## Por que usar Google Cloud Platform?
 
-Un CronJob en Kubernetes es un recurso que permite ejecutar tareas programadas en el clúster. Funciona de manera similar a cron en sistemas Unix, permitiendo definir trabajos que se ejecutan en intervalos de tiempo específicos. Los CronJobs son útiles para tareas periódicas como copias de seguridad, informes y limpieza de datos.
+Google Cloud ofrecío servicios de kubernetes como servicio primero que las otras grandes plataformas por lo que su uso es considerablemente mas facil en comparacion.
+Adicionalmente ofrece herramientas que se integracon con kubernetes de manera muy amigable y potente
+Tambien porque ofrece el uso de kubernetes en la capa gratuita
+
+Comandos usados: 
+
+Para crear el cluster
+```bash
+gcloud container clusters create CLUSTER_NAME \
+  --num-nodes=NODE_NUMBER \
+  --location=CLUSTER_LOCATION
+```
+
+Para agregar directivas que permiten el uso de Gateway
+```bash
+gcloud container clusters update CLUSTER_NAME \
+    --location=CLUSTER_LOCATION\
+    --gateway-api=standard
+```
+
+Conectar Kubectl local con remoto
+```bash
+gcloud container clusters get-credentials sa-p5-cluster --zone us-central1-a --project saproyect
+```
