@@ -74,7 +74,7 @@ spec:
         urlRewrite:
           path:
             type: ReplacePrefixMatch
-            replacePrefixMatch: /
+            replacePrefixMatch: /graphql
       backendRefs:
         - name: api-posts-svc
           port: 80

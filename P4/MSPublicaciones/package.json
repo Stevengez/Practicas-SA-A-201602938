@@ -23,6 +23,7 @@
   },
   "devDependencies": {
     "@mikro-orm/cli": "^6.4.9",
+    "@types/cors": "^2.8.17",
     "@types/node": "^22.13.10",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.2"
