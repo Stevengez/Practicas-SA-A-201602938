@@ -1,0 +1,18 @@
+resources:
+- ./ms_comms_deploy.yaml
+
+patches:
+- target:
+    kind: Deployment
+    name: comms-api-deployment
+  patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: comms-api-deployment
+    spec:
+      template:
+        spec:
+          containers:
+          - name: api-comms
+            image: REPOSITORY/IMAGE:TAG

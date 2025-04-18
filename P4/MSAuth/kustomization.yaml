@@ -1,0 +1,18 @@
+resources:
+- ./ms_auth_deploy.yaml
+
+patches:
+- target:
+    kind: Deployment
+    name: auth-api-deployment
+  patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: auth-api-deployment
+    spec:
+      template:
+        spec:
+          containers:
+          - name: api-auth
+            image: REPOSITORY/IMAGE:TAG

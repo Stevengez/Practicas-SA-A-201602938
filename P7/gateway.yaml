@@ -1,0 +1,104 @@
+kind: Gateway
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: proyect-gateway
+  annotations:
+    #networking.gke.io/certmap: store-example-com-map
+spec:
+  gatewayClassName: gke-l7-global-external-managed
+  listeners:
+  - name: http
+    protocol: HTTP
+    port: 80
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: proyect-route
+spec:
+  parentRefs:
+    - kind: Gateway
+      name: proyect-gateway
+  rules:
+    - matches:
+      - path:
+          value: /api/v1/usuarios
+      filters:
+      - type: URLRewrite
+        urlRewrite:
+          path:
+            type: ReplacePrefixMatch
+            replacePrefixMatch: /graphql
+      backendRefs:
+        - name: api-auth-svc
+          port: 80
+          namespace: p5
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: proyect-route-reacts
+spec:
+  parentRefs:
+    - kind: Gateway
+      name: proyect-gateway
+  rules:
+    - matches:
+      - path:
+          value: /api/v1/reacciones
+      filters:
+      - type: URLRewrite
+        urlRewrite:
+          path:
+            type: ReplacePrefixMatch
+            replacePrefixMatch: /
+      backendRefs:
+        - name: api-reacts-svc
+          port: 80
+          namespace: p5
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: proyect-route-posts
+spec:
+  parentRefs:
+    - kind: Gateway
+      name: proyect-gateway
+  rules:
+    - matches:
+      - path:
+          value: /api/v1/publicaciones
+      filters:
+      - type: URLRewrite
+        urlRewrite:
+          path:
+            type: ReplacePrefixMatch
+            replacePrefixMatch: /graphql
+      backendRefs:
+        - name: api-posts-svc
+          port: 80
+          namespace: p5
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: proyect-route-comms
+spec:
+  parentRefs:
+    - kind: Gateway
+      name: proyect-gateway
+  rules:
+    - matches:
+      - path:
+          value: /api/v1/comentarios
+      filters:
+      - type: URLRewrite
+        urlRewrite:
+          path:
+            type: ReplacePrefixMatch
+            replacePrefixMatch: /
+      backendRefs:
+        - name: api-comms-svc
+          port: 80
+          namespace: p5

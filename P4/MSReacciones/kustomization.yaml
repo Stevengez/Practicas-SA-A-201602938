@@ -1,0 +1,18 @@
+resources:
+- ./ms_reacts_deploy.yaml
+
+patches:
+- target:
+    kind: Deployment
+    name: reacts-api-deployment
+  patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: reacts-api-deployment
+    spec:
+      template:
+        spec:
+          containers:
+          - name: api-reacts
+            image: REPOSITORY/IMAGE:TAG
