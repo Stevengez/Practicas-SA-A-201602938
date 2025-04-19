@@ -2,7 +2,7 @@ import { EntityManager, EntityRepository, MikroORM } from "@mikro-orm/core";
 import { Usuario } from "./entities/usuario.entity.js";
 import { TsMorphMetadataProvider } from "@mikro-orm/reflection";
 import { SqliteDriver } from "@mikro-orm/sqlite";
-import { beforeAll, afterAll, describe, it, expect } from 'vitest'
+import { beforeAll, afterAll, describe, test, expect } from 'vitest'
 
 describe("Controller Usuarios", () => {
 
@@ -32,7 +32,7 @@ describe("Controller Usuarios", () => {
         await mikroOrm.close()
     })
 
-    it('Create new user', async () => {
+    test('Create new user', async () => {
 
         const newUser = serviceRepo.create({
             nombre: "Steven",
