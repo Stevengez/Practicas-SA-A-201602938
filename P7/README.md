@@ -1,38 +1,7 @@
 ## Documentacion
-### ¿Qué es Kubernetes?
+La siguiente documentacion describe la forma de desplegar de manera automatica un cluster de kubernetes en Google Cloud Platform usando kubespray, y usando Jenkins, realizar CI/CD
 
-Kubernetes es una plataforma de orquestación de contenedores de código abierto que automatiza la implementación, el escalado y la gestión de aplicaciones en contenedores. Fue desarrollado originalmente por Google y ahora es mantenido por la Cloud Native Computing Foundation (CNCF).
-
-## ¿Cómo funciona un despliegue en Kubernetes?
-
-Un despliegue en Kubernetes implica varios componentes clave que trabajan juntos para gestionar la aplicación. Los pasos básicos incluyen:
-
-1. **Definición de la configuración**: Se definen archivos YAML o JSON que describen el estado deseado de la aplicación, incluyendo los contenedores, las imágenes, los recursos y las políticas.
-2. **Aplicación de la configuración**: Se utiliza `kubectl apply` para aplicar la configuración al clúster de Kubernetes.
-3. **Controlador de despliegue**: Kubernetes utiliza controladores para asegurarse de que el estado actual del clúster coincida con el estado deseado definido en la configuración.
-4. **Gestión de pods**: Kubernetes crea y gestiona pods, que son las unidades básicas de ejecución que contienen uno o más contenedores.
-5. **Escalado y actualización**: Kubernetes puede escalar automáticamente la aplicación y realizar actualizaciones sin tiempo de inactividad.
-
-## ¿Qué es un Deployment?
-
-Un Deployment en Kubernetes es un recurso que proporciona una forma declarativa de gestionar aplicaciones. Permite definir el estado deseado de la aplicación y Kubernetes se encarga de crear y mantener los pods necesarios para alcanzar ese estado. Los Deployments también permiten realizar actualizaciones y retrocesos de manera controlada.
-
-## ¿Qué es un Service?
-
-Un Service en Kubernetes es un recurso que define una política de acceso a un conjunto de pods. Proporciona una forma de exponer una aplicación en ejecución dentro del clúster, permitiendo el descubrimiento y el balanceo de carga. Los Services pueden ser de varios tipos, como ClusterIP, NodePort y LoadBalancer.
-
-## Aplicar configuración de Kubernetes
-Para aplicar la configuración de Kubernetes, se utiliza el comando `kubectl apply -f <archivo.yaml>`. Este comando aplica la configuración especificada en el archivo YAML al clúster de Kubernetes.
-
-```sh
-kubectl apply -f ms_auth_deploy.yaml -n p5
-kubectl apply -f ms_reacts_deploy.yaml -n p5
-kubectl apply -f ms_posts_deploy.yaml -n p5
-kubectl apply -f ms_comms_deploy.yaml -n p5
-kubectl apply -f gateway.yaml -n p5
-```
-
-## Archivos YAML de los despliegues
+## YAML de Microservicios
 
 ### ms_reacts_deploy.yaml
 ```yaml
@@ -542,167 +511,212 @@ spec:
         averageUtilization: 80
 ```
 
-### gateway.yaml
+## Preparar VMs en GCP
+
+Se crea la red y subred
+```bash
+gcloud compute networks create kubep7 --subnet-mode custom
+gcloud compute networks subnets create kubernetes \
+  --network kubep7 \
+  --range 10.240.0.0/24
+```
+Se agregan las reglas al firewall
+```bash
+gcloud compute firewall-rules create kubep7-allow-internal \
+  --allow tcp,udp,icmp,vxlan \
+  --network kubernetes-the-kubespray-way \
+  --source-ranges 10.240.0.0/24
+
+gcloud compute firewall-rules create kubep7-allow-external \
+  --allow tcp:80,tcp:6443,tcp:443,tcp:22,tcp:30000,tcp:30001,icmp \
+  --network kubernetes-the-kubespray-way \
+  --source-ranges 0.0.0.0/0
+```
+
+Se crean los instance template para el controller
+```bash
+gcloud compute instance-templates create kubep7-controller-template \
+    --boot-disk-size 100GB \
+    --can-ip-forward \
+    --image-family ubuntu-2204-lts \
+    --image-project ubuntu-os-cloud \
+    --machine-type e2-medium \
+    --provisioning-model=SPOT \
+    --scopes compute-rw,storage-ro,service-management,service-control,logging-write,monitoring \
+    --subnet kubernetes \
+    --tags kubep7,controller
+
+```
+Y se crea uno para los nodos
+```
+gcloud compute instance-templates create kubep7-worker-template \
+    --boot-disk-size 100GB \
+    --can-ip-forward \
+    --image-family ubuntu-2204-lts \
+    --image-project ubuntu-os-cloud \
+    --machine-type e2-medium \
+    --provisioning-model=SPOT \
+    --scopes compute-rw,storage-ro,service-management,service-control,logging-write,monitoring \
+    --subnet kubernetes \
+    --tags kubep7,worker
+```
+
+## Preparar Kubespray
+Clonar el repositorio de kubespray
+```bash
+git clone gh repo clone kubespray/kubespray
+```
+Modificar el archivo de inventory.ini con las IPs de las VM en gcp
+```bash
+[kube_control_plane]
+node1 ansible_host=34.60.73.223
+
+[etcd:children]
+kube_control_plane
+
+[kube_node]
+node4 ansible_host=34.67.203.3
+node5 ansible_host=34.72.38.87
+node6 ansible_host=34.59.70.126
+```
+
+Se habilita el uso de almacenamienmto local modificando addons.yaml
 ```yaml
-kind: Gateway
-apiVersion: gateway.networking.k8s.io/v1beta1
-metadata:
-  name: proyect-gateway
-spec:
-  gatewayClassName: gke-l7-global-external-managed
-  listeners:
-  - name: http
-    protocol: HTTP
-    port: 80
----
-kind: HTTPRoute
-apiVersion: gateway.networking.k8s.io/v1beta1
-metadata:
-  name: proyect-route
-spec:
-  parentRefs:
-    - kind: Gateway
-      name: proyect-gateway
-  rules:
-    - matches:
-      - path:
-          value: /api/v1/usuarios
-      filters:
-      - type: URLRewrite
-        urlRewrite:
-          path:
-            type: ReplacePrefixMatch
-            replacePrefixMatch: /graphql
-      backendRefs:
-        - name: api-auth-svc
-          port: 80
-          namespace: p5
----
-kind: HTTPRoute
-apiVersion: gateway.networking.k8s.io/v1beta1
-metadata:
-  name: proyect-route-reacts
-spec:
-  parentRefs:
-    - kind: Gateway
-      name: proyect-gateway
-  rules:
-    - matches:
-      - path:
-          value: /api/v1/reacciones
-      filters:
-      - type: URLRewrite
-        urlRewrite:
-          path:
-            type: ReplacePrefixMatch
-            replacePrefixMatch: /
-      backendRefs:
-        - name: api-reacts-svc
-          port: 80
-          namespace: p5
----
-kind: HTTPRoute
-apiVersion: gateway.networking.k8s.io/v1beta1
-metadata:
-  name: proyect-route-posts
-spec:
-  parentRefs:
-    - kind: Gateway
-      name: proyect-gateway
-  rules:
-    - matches:
-      - path:
-          value: /api/v1/publicaciones
-      filters:
-      - type: URLRewrite
-        urlRewrite:
-          path:
-            type: ReplacePrefixMatch
-            replacePrefixMatch: /graphql
-      backendRefs:
-        - name: api-posts-svc
-          port: 80
-          namespace: p5
----
-kind: HTTPRoute
-apiVersion: gateway.networking.k8s.io/v1beta1
-metadata:
-  name: proyect-route-comms
-spec:
-  parentRefs:
-    - kind: Gateway
-      name: proyect-gateway
-  rules:
-    - matches:
-      - path:
-          value: /api/v1/comentarios
-      filters:
-      - type: URLRewrite
-        urlRewrite:
-          path:
-            type: ReplacePrefixMatch
-            replacePrefixMatch: /
-      backendRefs:
-        - name: api-comms-svc
-          port: 80
-          namespace: p5
-  
+# Rancher Local Path Provisioner
+local_path_provisioner_enabled: true
+local_path_provisioner_namespace: "local-path-storage"
+local_path_provisioner_storage_class: "local-path"
+local_path_provisioner_reclaim_policy: Delete
+local_path_provisioner_claim_root: /opt/local-path-provisioner/
+local_path_provisioner_debug: false
 ```
 
-### Verificar el estado de los recursos
-Para verificar el estado de los recursos desplegados, se pueden utilizar los siguientes comandos:
-
-- Verificar los pods:
-```sh
-kubectl get pods -n sa-p5
-```
-
-- Verificar los servicios:
-```sh
-kubectl get svc -n sa-p5
-```
-
-- Verificar los deployments:
-```sh
-kubectl get deployments -n sa-p5
-```
-
-- Verificar los statefulsets:
-```sh
-kubectl get statefulsets -n sa-p5
-```
-
-- Verificar los horizontal pod autoscalers:
-```sh
-kubectl get hpa -n sa-p5
-```
-
-## Diagrama de Arquitectura
-![alt text](<P5 - Diagrama de Arquitectura.jpg>)
-
-## Por que usar Google Cloud Platform?
-
-Google Cloud ofrecío servicios de kubernetes como servicio primero que las otras grandes plataformas por lo que su uso es considerablemente mas facil en comparacion.
-Adicionalmente ofrece herramientas que se integracon con kubernetes de manera muy amigable y potente
-Tambien porque ofrece el uso de kubernetes en la capa gratuita
-
-Comandos usados: 
-
-Para crear el cluster
+Se instalan las dependencias con pip y se cambia el python context a un nuevo entorno virtual
 ```bash
-gcloud container clusters create CLUSTER_NAME \
-  --num-nodes=NODE_NUMBER \
-  --location=CLUSTER_LOCATION
+pip install -r requirements.txt
+python -m venv venv
+source venv/bin/activate
 ```
 
-Para agregar directivas que permiten el uso de Gateway
+Ejecutar al comando para inicializar el cluster de kubernetes
 ```bash
-gcloud container clusters update CLUSTER_NAME \
-    --location=CLUSTER_LOCATION\
-    --gateway-api=standard
+ansible-playbook -i inventory/mycluster/inventory.ini -u stevengez -b -v --private-key=~/.ssh/google_compute_engine cluster.yml
+```
+Este comando puede tomar hasta 20min
+
+## CI/CD Contenedores
+Crear un contenedor para ejecutar Docker in Docker y la instancia de Jenkins para CI/CD
+
+```bash
+docker run -d `
+	--name dind `
+	--privileged `
+	--network p7 `
+	-p 2375:2375 `
+	-e DOCKER_TLS_CERTDIR="" `
+	docker:dind
 ```
 
-Conectar Kubectl local con remoto
 ```bash
-gcloud container clusters get-credentials sa-p5-cluster --zone us-central1-a --project saproyect
+docker run -d `
+  --name jenkins `
+  --privileged `
+  --network p7 `
+  -p 8080:8080 -p 50000:50000 `
+  -v jenkins_home:/var/jenkins_home `
+  jenkins/jenkins:lts
+```
+
+```bash
+docker exec -it -u 0 JENKINS_DOCKER_ID /bin/bash
+> apt update
+> apt install docker.io nodejs npm
+```
+
+### Jenkins Pipelines
+Crear credenciales
+![alt text](image.png)
+
+## Test, Build & Deploy
+
+Primero se definen las variables de entorno para usar en los diferentes stages y se hace checkout del repositorio que contiene el codigo
+```pipeline
+pipeline {
+    agent any
+    
+    environment {
+        REPOSITORY = 'stevengez'
+        IMAGE = "p7-msauth"
+        TAG = "v${BUILD_NUMBER}.0"
+        DOCKER_HOST = "tcp://dind:2375"
+        DEPLOYMENT_NAME = "auth-api-deployment"
+    }
+    
+    stages {
+        stage('Checkout Code from GitHub') {
+            steps {
+                // Checkout el código desde GitHub
+                git url: 'https://github.com/Stevengez/Practicas-SA-A-201602938.git',
+                branch: 'main',
+                credentialsId: 'gitrepo'
+            }
+        }
+    }
+}
+```
+
+Se agrega un stage para realizar testing
+```pipeline
+stage('Testing') {
+    steps {
+        sh """
+            cd ./P4/MSAuth
+            npm i
+            npm run test
+        """
+    }
+}
+```
+
+Se agrega un stage para realizar la construccion de la imagen de docker y para enviarla al registry (Dockerhub) 
+```
+stage('Build Docker Image') {
+    steps {
+        sh """
+            docker -H ${env.DOCKER_HOST} build -t ${env.REPOSITORY}/${env.IMAGE}:${env.TAG} ./P4/MSAuth
+        """
+    }
+}
+
+stage('Push Docker Image') {
+    steps {
+        withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]){
+            sh """
+                echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                docker push ${env.REPOSITORY}/${env.IMAGE}:${env.TAG}
+            """
+        }
+    }
+}
+```
+
+Finalmente se usa la nueva image TAG y se reemplaza en el deployment de kubernetes para que se use la nueva version recien creada, se usa ```kustomize``` y ```kubectl```
+```
+stage('Push to kubernetes cluster'){
+    steps{
+        withKubeConfig(credentialsId: 'kubeconfig'){
+            sh """
+                cd ./P7
+                curl -sfLo kustomize.tar.gz https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.4.3/kustomize_v5.4.3_linux_amd64.tar.gz
+                tar -xzf kustomize.tar.gz
+                chmod u+x ./kustomize
+                
+                mv ../P4/MSAuth/kustomization.yaml ./kustomization.yaml
+                ./kustomize edit set image REPOSITORY/IMAGE:TAG=${env.REPOSITORY}/${env.IMAGE}:${env.TAG}
+                ./kustomize build . | kubectl apply -f -
+                kubectl rollout status deployment/${env.DEPLOYMENT_NAME} --timeout=3m
+            """
+        }
+    }
+}
 ```
