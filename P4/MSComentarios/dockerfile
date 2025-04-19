@@ -14,6 +14,7 @@ RUN go mod tidy
 # Copiar el código fuente al contenedor
 COPY . .
 
+RUN go get github.com/stretchr/testify
 RUN go test
 # Construir el binario
 RUN go build -o main .
