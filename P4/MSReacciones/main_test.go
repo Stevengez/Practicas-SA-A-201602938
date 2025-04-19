@@ -50,4 +50,22 @@ func TestStatusEndpoint(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
-func TestMegustaEndpointSinFilt
+func TestMegustaEndpointSinFiltros(t *testing.T) {
+	app := setupTestApp()
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	resp, err := app.Test(req)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
+func TestMegustaEndpointConFiltros(t *testing.T) {
+	app := setupTestApp()
+
+	req := httptest.NewRequest(http.MethodGet, "/?publicacion_id=1&comentario_id=2&usuario_id=3", nil)
+	resp, err := app.Test(req)
+
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}
