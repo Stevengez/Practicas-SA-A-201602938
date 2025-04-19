@@ -4,7 +4,7 @@ import { SqliteDriver } from "@mikro-orm/sqlite";
 import { beforeAll, afterAll, describe, it, expect } from 'vitest'
 import { Publicacion } from "./entities/publicacion.entity.js";
 
-describe("Controller Usuarios", () => {
+describe("Controller Publicaciones", () => {
 
     let mikroOrm:MikroORM;
     let em:EntityManager;
@@ -32,7 +32,7 @@ describe("Controller Usuarios", () => {
         await mikroOrm.close()
     })
 
-    it('Create new user', async () => {
+    it('Create new post', async () => {
 
         const newPost = serviceRepo.create({
             contenido: "Prueba de publicacion",
