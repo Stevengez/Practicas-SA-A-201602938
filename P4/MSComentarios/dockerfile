@@ -15,6 +15,7 @@ RUN go mod tidy
 COPY . .
 
 RUN go get github.com/stretchr/testify
+RUN go get github.com/stretchr/testify/assert@v1.10.0
 RUN go test
 # Construir el binario
 RUN go build -o main .
