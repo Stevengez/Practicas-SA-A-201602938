@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "compile": "tsc",
-    "start": "npm run compile && node ./dist/index.js"
+    "start": "npm run compile && node ./dist/index.js",
+    "test": "vitest"
   },
   "keywords": [],
   "author": "",
@@ -21,10 +22,17 @@
     "graphql": "^16.10.0"
   },
   "devDependencies": {
+    "@babel/core": "^7.26.10",
+    "@babel/preset-env": "^7.26.9",
     "@mikro-orm/cli": "^6.4.9",
+    "@mikro-orm/sqlite": "^6.4.9",
     "@types/cors": "^2.8.17",
+    "@types/jest": "^29.5.14",
     "@types/node": "^22.13.10",
+    "babel-jest": "^29.7.0",
+    "ts-jest": "^29.3.2",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "vitest": "^3.1.1"
   }
 }
