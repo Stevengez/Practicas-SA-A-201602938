@@ -720,3 +720,24 @@ stage('Push to kubernetes cluster'){
     }
 }
 ```
+
+
+### Ingress
+Como se trata de un cluster administrador por nosotros no tenemos acceso publico desde un balanceador de la nube, enotnces debemos instalar ingress pero usar un nodeport
+Instalamos nginx usando helm
+```bash
+helm upgrade --install ingress-nginx ingress-nginx \
+  --repo https://kubernetes.github.io/ingress-nginx \
+  --namespace ingress-nginx --create-namespace
+```
+
+Aplicamos la configuracion del ingress
+
+```bash
+kubectl apply -f ingress.yaml
+```
+ 
+ y luego aplicamos el nodeport para el puerto 30000
+ ```bash
+kubectl apply -f nodeport.yaml
+```
