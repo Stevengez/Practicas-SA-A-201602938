@@ -1,0 +1,89 @@
+# kind: Gateway
+# apiVersion: gateway.networking.k8s.io/v1beta1
+# metadata:
+#   name: p8-gateway
+#   annotations:
+#     #networking.gke.io/certmap: store-example-com-map
+# spec:
+#   gatewayClassName: gke-l7-global-external-managed
+#   listeners:
+#   - name: http
+#     protocol: HTTP
+#     port: 80
+#   - name: https
+#     protocol: HTTPS
+#     port: 443
+#     tls:
+#       mode: Terminate
+#       certificateRefs:
+#         - name: p8tls
+
+# ---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: kibana-route
+spec:
+  parentRefs:
+    - kind: Gateway
+      name: proyect-gateway
+  rules:
+    - matches:
+      - path:
+          value: /kibana
+      filters:
+      - type: URLRewrite
+        urlRewrite:
+          path:
+            type: ReplacePrefixMatch
+            replacePrefixMatch: /
+      backendRefs:
+        - name: es-kb-eck-kibana-kb-http
+          port: 5601
+          namespace: elastic-stack
+---
+kind: HTTPRoute
+apiVersion: gateway.networking.k8s.io/v1beta1
+metadata:
+  name: elastic
+spec:
+  parentRefs:
+    - kind: Gateway
+      name: proyect-gateway
+  rules:
+    - matches:
+      - path:
+          value: /elastic
+      filters:
+      - type: URLRewrite
+        urlRewrite:
+          path:
+            type: ReplacePrefixMatch
+            replacePrefixMatch: /
+      backendRefs:
+        - name: elasticsearch-es-http
+          port: 9200
+          namespace: elastic-stack
+# ---
+# kind: HTTPRoute
+# apiVersion: gateway.networking.k8s.io/v1beta1
+# metadata:
+#   name: elastic-2
+# spec:
+#   parentRefs:
+#     - kind: Gateway
+#       name: proyect-gateway
+#   rules:
+#     - matches:
+#       - path:
+#           value: /elastic
+#       filters:
+#       - type: URLRewrite
+#         urlRewrite:
+#           path:
+#             type: ReplacePrefixMatch
+#             replacePrefixMatch: /
+#       backendRefs:
+#         - name: service/elasticsearch-es-default
+#           port: 9200
+#           namespace: p5

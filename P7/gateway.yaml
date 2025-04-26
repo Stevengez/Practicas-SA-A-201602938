@@ -1,7 +1,7 @@
 kind: Gateway
 apiVersion: gateway.networking.k8s.io/v1beta1
 metadata:
-  name: proyect-gateway
+  name: p8-gateway
   annotations:
     #networking.gke.io/certmap: store-example-com-map
 spec:
@@ -10,6 +10,9 @@ spec:
   - name: http
     protocol: HTTP
     port: 80
+  - name: https
+    protocol: HTTPS
+    port: 8080
 ---
 kind: HTTPRoute
 apiVersion: gateway.networking.k8s.io/v1beta1
