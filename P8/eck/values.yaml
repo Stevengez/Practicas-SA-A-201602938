@@ -1,0 +1,115 @@
+---
+eck-elasticsearch:
+  enabled: true
+  # This is adjusting the full name of the elasticsearch resource so that both the eck-elasticsearch
+  # and the eck-kibana chart work together by default in the eck-stack chart.
+  fullnameOverride: elasticsearch
+  replicas: 1
+  minimumMasterNodes: 1
+
+# If enabled, will use the eck-kibana chart and deploy a Kibana resource.
+#
+eck-kibana:
+  enabled: true
+  # This is also adjusting the kibana reference to the elasticsearch resource named previously so that
+  # both the eck-elasticsearch and the eck-kibana chart work together by default in the eck-stack chart.
+  elasticsearchRef:
+    name: elasticsearch
+
+# If enabled, will use the eck-agent chart and deploy an Elastic Agent instance.
+#
+eck-agent:
+  enabled: false
+
+# If enabled, will use the eck-fleet-server chart and deploy a Fleet Server resource.
+#
+eck-fleet-server:
+  enabled: false
+
+# If enabled, will use the eck-beats chart and deploy a Beats resource.
+#
+eck-beats:
+  enabled: true
+  daemonSet: null
+  spec:
+    type: filebeat
+    config:
+      filebeat.inputs:
+      - type: container
+        paths:
+          - /var/log/containers/*.log
+      processors:
+      - add_kubernetes_metadata:
+          host: ${NODE_NAME}
+          matchers:
+          - logs_path:
+              logs_path: "/var/log/containers/"
+      output.logstash:
+        # This needs to be {{logstash-name}}-ls-beats:5044
+        hosts: ["logstash-logstash:5044"]
+    
+# If enabled, will use the eck-logstash chart and deploy a Logstash resource.
+#
+eck-logstash:
+  enabled: true
+  extraEnvs: 
+  - name: "ELASTICSEARCH_USERNAME"
+    valueFrom:
+      secretKeyRef:
+        name: elasticsearch-master-credentials
+        key: username
+  - name: "ELASTICSEARCH_PASSWORD"
+    valueFrom:
+      secretKeyRef:
+        name: elasticsearch-master-credentials
+        key: password
+  secretMounts:
+  - name: "elasticsearch-master-certs"
+    secretName: "elasticsearch-master-certs"
+    path: "/usr/share/logstash/config/elasticsearch-master-certs/"
+  pipelines:
+    - pipeline.id: main
+      config.string: |
+        input {
+          beats {
+            port => 5044
+          }
+        }
+        output {
+            elasticsearch {
+              hosts => "https://elasticsearch-master:9200"
+              cacert => "/usr/share/logstash/config/elasticsearch-master-certs/ca.crt"
+              user => "${ELASTICSEARCH_USERNAME}"
+              password => "${ELASTICSEARCH_PASSWORD}"
+            }
+        }
+  services:
+    - name: beats
+      service:
+        spec:
+          type: ClusterIP
+          ports:
+            - port: 5044
+              name: "filebeat"
+              protocol: TCP
+              targetPort: 5044
+    - name: http
+      service:
+        spec:
+          type: ClusterIP
+          ports:
+            - port: 8080
+              name: "http"
+              protocol: TCP
+              targetPort: 8080
+
+# If enabled, will use the eck-apm-server chart and deploy a standalone APM Server resource.
+#
+eck-apm-server:
+  enabled: false
+
+# If enabled, will use the eck-enterprise-search chart and deploy a Enterprise Search resource.
+#
+eck-enterprise-search:
+  enabled: false
+
