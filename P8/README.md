@@ -810,7 +810,7 @@ helm install kibana -n elastic-stack elastic/kibana -f kibana/values.yaml
 ```
 ### Acceder al Dashboard de Kibana
 ```bash
-kubectl port-forward -n monitoring service/kibana-kibana 5601:5601
+kubectl port-forward -n elastic-stack service/kibana-kibana 5601:5601
 ```
 #### Obtener Credenciales
 - ```username: elastic```
