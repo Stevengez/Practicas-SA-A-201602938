@@ -696,17 +696,6 @@ ingress:
 helm install logstash -n elastic-stack elastic/logstash -f logstash/values.yaml
 ```
 
-### Acceder al Dashboard de Kibana
-```bash
-kubectl port-forward -n monitoring service/kibana-kibana 5601:5601
-```
-#### Obtener Credenciales
-- ```username: elastic```
-- password:
-```sh
-kubectl get secret elasticsearch-master-credentials -n elastic-stack -o jsonpath={".data.password"} | base64 --decode
-```
-
 ### Instalar Kibana
 ```yaml
 elasticsearchHosts: "https://elasticsearch-master:9200"
@@ -819,6 +808,16 @@ lifecycle: {}
 ```bash
 helm install kibana -n elastic-stack elastic/kibana -f kibana/values.yaml
 ```
+### Acceder al Dashboard de Kibana
+```bash
+kubectl port-forward -n monitoring service/kibana-kibana 5601:5601
+```
+#### Obtener Credenciales
+- ```username: elastic```
+- password:
+```sh
+kubectl get secret elasticsearch-master-credentials -n elastic-stack -o jsonpath={".data.password"} | base64 --decode
+```
 
 ### Instalar Prometheus y Grafana
 Usando helm, instalamos el cluster de Prometheus y Grafana
@@ -827,7 +826,7 @@ Usando helm, instalamos el cluster de Prometheus y Grafana
 helm install prometheus prometheus-community/kube-prometheus-stack
 ```
 
-### Acceder al Dashboard de Kibana y Grafana
+### Acceder al Dashboard Grafana
 
 Grafana
 ```bash
