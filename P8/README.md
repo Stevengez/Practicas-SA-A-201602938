@@ -847,4 +847,5 @@ kubectl get secrets prometheus-grafana -n monitoring -o jsonpath="{.data.admin-p
 ![alt text](image-1.png)
 
 ### Alertas (Grafana)
+![alt text](image-2.png)
 

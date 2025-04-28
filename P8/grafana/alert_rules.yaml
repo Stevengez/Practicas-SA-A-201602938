@@ -59,7 +59,7 @@ groups:
             hw: p8
           isPaused: false
           notification_settings:
-            receiver: Admin
+            receiver: grafana-default-email
         - uid: cek7aur4zj7k0b
           title: Running Micro Services DB's
           condition: C
@@ -115,7 +115,7 @@ groups:
             hw: p8
           isPaused: false
           notification_settings:
-            receiver: Admin
+            receiver: grafana-default-email
         - uid: eek7b7r9hhm9sd
           title: Running Micro Services (Auth)
           condition: C
@@ -171,7 +171,7 @@ groups:
             hw: p8
           isPaused: false
           notification_settings:
-            receiver: Admin
+            receiver: grafana-default-email
         - uid: eek7bf53fz56of
           title: Running Micro Services (Posts)
           condition: C
@@ -227,7 +227,7 @@ groups:
             hw: p8
           isPaused: false
           notification_settings:
-            receiver: Admin
+            receiver: grafana-default-email
         - uid: bek7bg0t7kb28b
           title: Running Micro Services (Comments)
           condition: C
@@ -283,7 +283,7 @@ groups:
             hw: p8
           isPaused: false
           notification_settings:
-            receiver: Admin
+            receiver: grafana-default-email
         - uid: cek7bgyk36ha8f
           title: Running Micro Services (Reactions)
           condition: C
@@ -339,4 +339,4 @@ groups:
             hw: p8
           isPaused: false
           notification_settings:
-            receiver: Admin
+            receiver: grafana-default-email
